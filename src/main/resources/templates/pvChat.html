@@ -1,0 +1,318 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"  xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>我的聊天室</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" >
+    <link rel="shortcut icon" type="image/x-icon" th:href="@{/image/vim_shortcut.ico}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mycss.css}">
+    <style type="text/css">
+        body{ background-image:url(/img/userInfoList.jpg)
+
+        }
+        body{
+            background-size: 100%;
+        }
+
+    </style>
+
+    <script src="http://cdn.sockjs.org/sockjs-0.3.min.js"></script>
+    <script th:src="@{/js/jquery-1.11.3.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/bootstrap.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/myjs.js}"></script>
+</head>
+<body >
+<!-- 导航 -->
+<nav class="navbar navbar-inverse navbar-fixed-top ">
+    <div class="container ">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="https://github.com/Vimmone/Chatrum">
+                <span class="glyphicon glyphicon-th-large"></span >
+                我的聊天室
+            </a>
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+
+
+
+
+
+
+
+        </div>
+        <div class="collapse navbar-collapse" id="navbar-collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li class="disable">
+                    <a >
+                        <span class="glyphicon glyphicon-off" onclick="delete1()"></span>&nbsp;&nbsp;
+                        <span id="username"></span>
+                    </a>
+                </li>
+            </ul>
+            <form class="navbar-form navbar-left">
+                <div class="form-group ">
+                    <input type="text" class="form-control " placeholder="请输入内容" id="chat">
+                </div>
+                <button type="button" class="btn btn-warning " id="sendMessage" onclick="send()">发送</button>
+                <!--					<button type="button" class="btn btn-danger "  onclick="clean()">删除记录</button>-->
+            </form>
+            <div style="display: none">
+                <span id="user" th:text="${user}" ></span>
+                <span id="toName" th:text="${toName}" ></span>
+            </div>
+        </div>
+
+    </div>
+</nav>
+<script type="text/javascript">
+    var user;
+    var websocket;
+    var date;
+    var toName
+    $(document).ready(function savename(){
+        var a=0;
+
+        $("#list").modal('hide');
+        $("#user").modal('hide');
+        // 保存名字
+        // if(/[.*<|>.*]|.{9}/.test($("#newname").val())||$("#newname").val()==""){
+        // 	$("[data-toggle='popover']").popover('show');
+        // 	return ;
+        // }
+
+
+        $("#username").text($("#user").text());
+        $('#myModal').modal('hide');
+        $("[data-toggle='popover']").popover('hide');
+        //然后存入session
+         user=$("#user").text();
+        toName=$("#toName").text();
+        //
+        // $.ajax({
+        //     url:"/send",
+        //     data:{
+        //         "name":name,
+        //     },
+        //     success(data){
+        //     }
+        // })
+        webSocketSession();
+        //遍历消息
+        //
+        // for(var j=0;j<list.length;j++){
+        // 	alert("de")
+        //   var msg=list[j];
+        // 	alert(msg)
+        //   // var name=list[i].name;
+        //   // var date=list[i].date;
+        //  	// 	var format = date.format("yyyy-MM-dd hh:mm:ss");
+        //  	// 	(format)
+        // }
+        //进入核心模块
+    });
+
+    function webSocketSession(){
+
+        user=$("#user").text();
+        var Onlineset = new Set();//维护在线人数的容器
+
+        Date.prototype.format = function(format) //author: meizz
+        {
+            var o = {
+                "M+" : this.getMonth()+1, //month
+                "d+" : this.getDate(), //day
+                "h+" : this.getHours(), //hour
+                "m+" : this.getMinutes(), //minute
+                "s+" : this.getSeconds(), //second
+                "q+" : Math.floor((this.getMonth()+3)/3), //quarter
+                "S" : this.getMilliseconds() //millisecond
+            }
+            if(/(y+)/.test(format)) format=format.replace(RegExp.$1,
+                (this.getFullYear()+"").substr(4 - RegExp.$1.length));
+            for(var k in o)if(new RegExp("("+ k +")").test(format))
+                format = format.replace(RegExp.$1,
+                    RegExp.$1.length==1 ? o[k] :
+                        ("00"+ o[k]).substr((""+ o[k]).length));
+            return format;
+        }
+        date=new Date().format("yyyy-MM-dd hh:mm:ss")
+        websocket = new WebSocket("ws://127.0.0.1:8059/talk/"+user);
+        websocket.onopen = function (evnt) {
+            // $("#messageList").append(<br/>)
+            // websocket.send("a"+name);
+        }
+        websocket.oncolse=function (evt){
+        }
+        websocket.onmessage=function (evt) {
+
+            var str = evt.data
+
+            var parse = JSON.parse(str);
+            if (parse.system) {
+
+            }
+            else{
+                if(parse.toName==null){
+                    var msg=parse.message;
+                    if(parse.fromName=="6"){
+
+                    }else {
+                        var date4=new Date().format("yyyy-MM-dd hh:mm:ss");
+                        //私聊模块
+                        $("#messageList").append("&ensp;&ensp;"+"您正在与"+msg+"对话.......&ensp;&ensp;"+date4);
+                        $("#messageList").append("<br/>")
+                    }
+                }else {
+                    //然后进行消息拼接
+                    if(parse.name==user){
+                        //消息模块
+                        var img="<img src='/image/other.jpg'  width='30px'/>"
+                        // <span th:text="|&ensp;&ensp;&ensp;&ensp;${li.getDate()}&ensp;&ensp;&ensp;&ensp;${li.getName()}&ensp;&ensp;&ensp;&ensp;|"></span>
+                        // <img   src='/image/other.jpg' style="display: inline-block"  width='30px'/>"
+                        $("#messageList").append("<span style=\"margin-left: 500px\">"+parse.date+"</span>"+"&ensp;&ensp;&ensp;&ensp;"+parse.name+"&ensp;&ensp;&ensp;&ensp;"+img);
+                        $("#messageList").append("<br/>")
+                        $("#messageList").append("<li style=\"margin-left: 500px;color:#3e8f3e\">"+parse.message+"</li>")
+                        $("#messageList").append("<br/>")
+                    }else{
+                        //消息模块
+                        var img="<img src='/image/myself.jpg'  width='30px'/>"
+                        $("#messageList").append(img+"&ensp;&ensp;"+parse.name+":&ensp;&ensp;"+parse.date);
+                        $("#messageList").append("<br/>")
+                        $("#messageList").append("<li style=\"color: #985f0d\">"+"&ensp;&ensp;&ensp;&ensp;&ensp;"+parse.message+"</li>")
+                        $("#messageList").append("<br/>")
+                    }
+                }
+
+            }
+        }
+
+
+    }
+
+    function  send(){
+
+        // var img="<img src='/image/myself.jpg'  width='30px'/>"
+        // var msg="<li id='msg11' style='margin-left: 20px' value='asd'></li>"
+        var s=$("#chat").val();
+        $("#chat").val("");
+        //聊天室发送消息（谁发的，消息是什么）
+        var date1=new Date().format("yyyy-MM-dd hh:mm:ss");
+        $.ajax({
+            url:"/sendPvDo",
+            data:{
+                "name":user,
+                "toName":toName,
+                "msg":s,
+                "date":date1
+            },
+            success(data){
+
+            },error(){
+
+            }
+        })
+        var json={"user":user,"toName":toName,"msg":s,"date":date1};
+        //然后发送给服务端
+        websocket.send( JSON.stringify(json));
+        //然后进行数据库存数据
+        // $.ajax({
+        //  url:"/sendDo",
+        //  data: {
+        //  	"name":user,
+        // 	 "msg":s,
+        // 	 "date":date1
+        //  },
+        //  success(data) {
+        //  	alert("成功")
+        //  }
+        // })
+
+
+
+        // $("#messageList").append(img+"&ensp;&ensp;"+name+":&ensp;&ensp;"+"2017-09-12:08:26:12");
+        // $("#messageList").append("<br>");
+        // $("#messageList").append("&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;"+s);
+        // $("#messageList").append("<br>");
+    }
+</script>
+<script type="text/javascript">
+    function delete1(){
+        window.location.href="/index";
+        window.event.returnvalue=false
+    }
+
+
+</script>
+<br><br><br>
+<!-- 主体模块 -->
+<div class="container-fluid main">
+    <div class="row">
+        <div class="col-md-9">
+            <ul class="media-list" id="messageList">
+                <!-- 存放消息 -->
+                <div th:each="li :${pvList}">
+                    <div style="margin-left: 470px" th:if="${li.getName()==user} ">
+                        <span th:text="|&ensp;&ensp;&ensp;&ensp;${li.getDate()}&ensp;&ensp;&ensp;&ensp;${li.getName()}&ensp;&ensp;&ensp;&ensp;|"></span>
+                        <img   src='/image/other.jpg' style="display: inline-block"  width='30px'/>"
+                        <br/>
+                        <li style="color: #3e8f3e" th:text="|&ensp;&ensp;&ensp;&ensp;${li.getMsg()}|"></li>
+                        <br/>
+                    </div>
+                    <div  th:unless="${li.getName()==user} ">
+                        <img   src='/image/myself.jpg' style="display: inline-block"  width='30px'/>"
+                        <span th:text="|&ensp;&ensp;&ensp;&ensp;${li.getName()}:&ensp;&ensp;&ensp;&ensp;${li.getDate()}|"></span>
+                        <br/>
+                        <li style="color: #985f0d" th:text="|&ensp;&ensp;&ensp;&ensp;${li.getMsg()}|"></li>
+                        <br/>
+                    </div>
+
+                </div>
+            </ul>
+        </div>
+        <div class="col-md-3 hidden-xs hidden-sm ">
+            <div class="list-group " id="userlist">
+                <!-- 存放在线用户 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--
+     登陆必须先输入名字
+    隐藏模态框
+-->
+<!--	<div class="container">-->
+<!--		<div class="modal fade " id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"-->
+<!--		aria-hidden="true" data-backdrop="static" data-keyboard="false">-->
+<!--			<div class="modal-dialog" role="document">-->
+<!--				<div class="modal-content">-->
+<!--					<div class="modal-header">-->
+<!--						<h2 class="modal-title" id="myModalLabel">昵称</h2>-->
+<!--					</div>-->
+<!--					<div class="modal-body">-->
+<!--						<div class="form-group">-->
+<!--							<input type="text" class="form-control input-lg" placeholder="请输入昵称"-->
+<!--							data-container="body" data-toggle="popover" data-placement="top"-->
+<!--							data-content="昵称不能为空，不能出现<或>，且不能超过9位"-->
+<!--							id="newname">-->
+<!--						</div>-->
+<!--					</div>-->
+<!--					<div class="modal-footer">-->
+<!--						<button type="button" class="btn btn-info " data-target="#newname"-->
+<!--						onclick="savename()">保存</button>-->
+<!--					</div>-->
+<!--				</div>-->
+<!--			</div>-->
+<!--		</div>-->
+<!--	</div>-->
+</body>
+</html>
